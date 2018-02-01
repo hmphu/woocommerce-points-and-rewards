@@ -38,7 +38,6 @@ class WC_Points_Rewards_Cart_Checkout {
 		add_action( 'woocommerce_before_cart', array( $this, 'render_redeem_points_message' ), 16 );
 		add_action( 'woocommerce_before_checkout_form', array( $this, 'render_earn_points_message' ), 5 );
 		add_action( 'woocommerce_before_checkout_form', array( $this, 'render_redeem_points_message' ), 6 );
-		add_action( 'woocommerce_before_checkout_form', array( $this, 'remove_coupon_handler' ), 6 );
 
 		// add earned points message on the thank you / order received page
 		add_action( 'woocommerce_thankyou', array( $this, 'render_thank_you_message' ) );
@@ -97,16 +96,6 @@ class WC_Points_Rewards_Cart_Checkout {
 		if ( is_checkout() ) {
 			$this->render_redeem_points_message();
 		}
-	}
-
-	/**
-	 * Shows the "earn points" message when a coupon is removed
-	 */
-	public function remove_coupon_handler() {
-		wc_enqueue_js( '$( "body" ).on ( "click", ".woocommerce-remove-coupon", function( e ) {
-			jQuery( ".wc_points_rewards_earn_points" ).show();
-			e.preventDefault();
-		} );');
 	}
 
 	/**
@@ -246,6 +235,29 @@ class WC_Points_Rewards_Cart_Checkout {
 	}
 
 	/**
+	 * Determines if the users cart is fully discounted.
+	 *
+	 * @since 1.6.10
+	 *
+	 * @return boolean
+	 */
+	public function is_fully_discounted() {
+
+		// If cart includes tax AND cart total is 0
+		if ( WC()->cart->prices_include_tax && 0 >= ( WC()->cart->cart_contents_total + WC()->cart->tax_total ) ) {
+			return true;
+		}
+
+		// If cart excludes tax AND cart total is 0
+		if ( ! WC()->cart->prices_include_tax && 0 >= WC()->cart->cart_contents_total ) {
+			return true;
+		}
+
+		return false;
+
+	}
+
+	/**
 	 * Renders a message and button above the cart displaying the points available to redeem for a discount
 	 *
 	 * @since 1.0
@@ -255,8 +267,13 @@ class WC_Points_Rewards_Cart_Checkout {
 
 		$existing_discount = WC_Points_Rewards_Discount::get_discount_code();
 
-		// don't display a message if coupons are disabled or points have already been applied for a discount
-		if ( ! WC()->cart->coupons_enabled() || ( ! empty( $existing_discount ) && WC()->cart->has_discount( $existing_discount ) ) ) {
+		/*
+		 * Don't display a points message to the user if:
+		 * The cart total is fully discounted OR
+		 * Coupons are disabled OR
+		 * Points have already been applied for a discount.
+		 */
+		if ( $this->is_fully_discounted() || ! WC()->cart->coupons_enabled() || ( ! empty( $existing_discount ) && WC()->cart->has_discount( $existing_discount ) ) ) {
 			return;
 		}
 
@@ -304,44 +321,154 @@ class WC_Points_Rewards_Cart_Checkout {
 		}
 
 		// add AJAX submit for applying the discount on the checkout page
+
 		if ( is_checkout() ) {
 			wc_enqueue_js( '
 			/* Points & Rewards AJAX Apply Points Discount */
-			$( "body" ).on( "submit", ".wc_points_rewards_apply_discount", function( e ) {
-				var $section = $( "div.wc_points_redeem_earn_points" );
 
-				if ( $section.is( ".processing" ) ) return false;
+			$(function() {
 
-				$section.addClass( "processing" ).block({message: null, overlayCSS: {background: "#fff", opacity: 0.6}});
+				/**
+				 * Get the order total.
+				 *
+				 * @since 1.6.10
+				 * @return {float} Float of the total for the users order
+				 */
+				var get_order_total = function get_order_total() {
 
-				$( ".wc_points_rewards_earn_points" ).hide();
+					var order_total_parts = document.querySelector(".order-total .woocommerce-Price-amount").childNodes[1].nodeValue.split("");
 
-				var data = {
-					action:    "wc_points_rewards_apply_discount",
-					discount_amount: $("input.wc_points_rewards_apply_discount_amount").val(),
-					security:  ( woocommerce_params.apply_coupon_nonce ? woocommerce_params.apply_coupon_nonce : wc_checkout_params.apply_coupon_nonce )
-				};
+					// Order totals occasionally have unwanted characters we dont want when parsing to evaluate.
+					var order_total_clean = order_total_parts.filter( function( item ) {
+						return ( ! isNaN( parseInt( item, 10 ) ) || "." === item );
+					});
 
-				$.ajax({
-					type:     "POST",
-					url:      woocommerce_params.ajax_url,
-					data:     data,
-					success:  function( code ) {
+					return parseFloat( order_total_clean.join("") );
 
-						$( ".woocommerce-error, .woocommerce-message" ).remove();
-						$section.removeClass( "processing" ).unblock();
+				}
 
-						if ( code ) {
-							$section.before( code );
+				/**
+				 * Show all points and rewards checkout messages.
+				 *
+				 * @since 1.6.10
+				 */
+				var show_all_messages = function show_all_messages() {
+					show_rewards_message();
+					show_redeem_message();
+				}
 
-							$section.remove();
+				/**
+				 * Hide all points and rewards checkout messages.
+				 *
+				 * @since 1.6.10
+				 */
+				var hide_all_messages = function hide_all_messages() {
+					hide_rewards_message();
+					hide_redeem_message();
+				}
 
-							$( "body" ).trigger( "update_checkout" );
-						}
-					},
-					dataType: "html"
+				/**
+				 * Show the rewards checkout message.
+				 *
+				 * @since 1.6.10
+				 * @param {function} Callback to be called after message is shown to the user.
+				 */
+				var show_rewards_message = function show_rewards_message( callback ) {
+					$( ".wc_points_rewards_earn_points" ).slideDown( function() {
+						callback && callback();
+					});
+				}
+
+				/**
+				 * Hide the rewards checkout message.
+				 *
+				 * @since 1.6.10
+				 * @param {function} Callback to be called after message is shown to the user.
+				 */
+				var hide_rewards_message = function hide_rewards_message( callback ) {
+					$( ".wc_points_rewards_earn_points" ).slideUp( function() {
+						callback && callback();
+					});
+				}
+
+				/**
+				 * Show the redeem checkout message.
+				 *
+				 * @since 1.6.10
+				 */
+				var show_redeem_message = function show_redeem_message() {
+					$( ".wc_points_redeem_earn_points" ).slideDown();
+				}
+
+				/**
+				 * Hide the redeem checkout message.
+				 *
+				 * @since 1.6.10
+				 */
+				var hide_redeem_message = function hide_redeem_message() {
+					$( ".wc_points_redeem_earn_points" ).slideUp();
+				}
+
+				$( document.body ).on( "updated_checkout", function() {
+					if ( 0 >= get_order_total() ) {
+						hide_all_messages();
+					} else {
+						show_all_messages();
+					}
+
 				});
-				return false;
+
+				$( "body" ).on ( "click", ".woocommerce-remove-coupon", function( e ) {
+					if ( 0 < get_order_total() ) {
+						show_all_messages();
+					}
+					e.preventDefault();
+				});
+
+				$( "body" ).on( "submit", ".wc_points_rewards_apply_discount", function( e ) {
+
+					var $section = $( "div.wc_points_redeem_earn_points" );
+
+					if ( $section.is( ".processing" ) ) {
+						return false;
+					}
+
+					$section.addClass( "processing" ).block({message: null, overlayCSS: {background: "#fff", opacity: 0.6}});
+
+					hide_rewards_message( function() {
+
+						var data = {
+							action: "wc_points_rewards_apply_discount",
+							discount_amount: $("input.wc_points_rewards_apply_discount_amount").val(),
+							security: ( woocommerce_params.apply_coupon_nonce ? woocommerce_params.apply_coupon_nonce : wc_checkout_params.apply_coupon_nonce )
+						};
+
+						$.ajax({
+							type:     "POST",
+							url:      woocommerce_params.ajax_url,
+							data:     data,
+							success:  function( code ) {
+
+								$( ".woocommerce-error, .woocommerce-message" ).remove();
+								$section.removeClass( "processing" ).unblock();
+
+								if ( code ) {
+									$section.before( code );
+
+									$section.hide();
+
+									$( "body" ).trigger( "update_checkout" );
+								}
+							},
+							dataType: "html"
+						});
+
+					});
+
+					return false;
+
+				});
+
 			});
 			' );
 		} // End if().
@@ -361,12 +488,14 @@ class WC_Points_Rewards_Cart_Checkout {
 			$points_earned += apply_filters( 'woocommerce_points_earned_for_cart_item', WC_Points_Rewards_Product::get_points_earned_for_product_purchase( $item['data'] ), $item_key, $item ) * $item['quantity'];
 		}
 
-		// reduce by any discounts.  One minor drawback: if the discount includes a discount on tax and/or shipping
-		//  it will cost the customer points, but this is a better solution than granting full points for discounted orders
+		/*
+		 * Reduce by any discounts.  One minor drawback: if the discount includes a discount on tax and/or shipping
+		 * it will cost the customer points, but this is a better solution than granting full points for discounted orders.
+		 */
 		if ( version_compare( WC_VERSION, '2.3', '<' ) ) {
 			$discount = WC()->cart->discount_cart + WC()->cart->discount_total;
 		} else {
-			$discount = WC()->cart->discount_cart;
+			$discount = ( wc_prices_include_tax() ) ? WC()->cart->discount_cart + WC()->cart->discount_cart_tax : WC()->cart->discount_cart;
 		}
 
 		$discount_amount = min( WC_Points_Rewards_Manager::calculate_points( $discount ), $points_earned );
@@ -431,8 +560,10 @@ class WC_Points_Rewards_Cart_Checkout {
 			WC()->cart->calculate_totals();
 		}
 
-		// calculate the discount to be applied by iterating through each item in the cart and calculating the individual
-		// maximum discount available
+		/*
+		 * Calculate the discount to be applied by iterating through each item in the cart and calculating the individual
+		 * maximum discount available.
+		 */
 		foreach ( WC()->cart->get_cart() as $item_key => $item ) {
 
 			$discount     = 0;

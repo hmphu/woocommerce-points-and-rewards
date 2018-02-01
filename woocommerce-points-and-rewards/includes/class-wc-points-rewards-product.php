@@ -37,6 +37,7 @@ class WC_Points_Rewards_Product {
 		// add the points message just before the variation price.
 		add_filter( 'woocommerce_variation_price_html', array( $this, 'render_variation_message' ), 10, 2 );
 		add_filter( 'woocommerce_variation_sale_price_html', array( $this, 'render_variation_message' ), 10, 2 );
+		add_filter( 'woocommerce_available_variation', array( $this, 'render_available_variation_message' ), 10, 3 );
 
 		add_filter( 'woocommerce_show_variation_price', '__return_true' );
 
@@ -147,16 +148,9 @@ class WC_Points_Rewards_Product {
 	public function create_variation_message_to_product_summary( $points ) {
 		global $wc_points_rewards;
 
-		$message = get_option( 'wc_points_rewards_variable_product_message' );
-		if ( empty( $message ) ) {
-			$message = sprintf(
-				/* translators: 1: points 2: points label */
-				__( 'Earn up to <strong>%1$d</strong> %2$s.' , 'woocommerce-points-and-rewards' ),
-				$points,
-				$wc_points_rewards->get_points_label( $points )
-			);
-
-		} else {
+		$message = get_option( 'wc_points_rewards_variable_product_message', '' );
+		if ( ! empty( $message ) ) {
+			
 			// replace placeholders inside settings values
 			$message = str_replace( '{points}', number_format_i18n( $points ), $message );
 			$message = str_replace( '{points_label}', $wc_points_rewards->get_points_label( $points ), $message );
@@ -185,6 +179,37 @@ class WC_Points_Rewards_Product {
 		$message = '<p class="points">' . $message . '</p>';
 
 		return $message;
+	}
+
+	/**
+	 * Add "Earn X Points when you purchase" message to the single product page
+	 * for variable products
+	 *
+	 * @param array      $data
+	 * @param WC_Product $product
+	 * @param WC_Product $variation
+	 *
+	 * @return array
+	 */
+	public function render_available_variation_message( $data, $product, $variation ) {
+
+		if ( ! is_product() ) {
+			return $data;
+		}
+
+		$message = get_option( 'wc_points_rewards_single_product_message' );
+
+		$points_earned = self::get_points_earned_for_product_purchase( $variation );
+
+		// bail if none available
+		if ( ! $message || ! $points_earned ) {
+			return $data;
+		}
+
+		// replace message variables
+		$data['price_html'] = $this->replace_message_variables( $message, $variation ) . ' ' . $data['price_html'];
+
+		return $data;
 	}
 
 	/**

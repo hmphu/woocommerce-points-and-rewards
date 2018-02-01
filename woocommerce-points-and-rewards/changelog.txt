@@ -1,5 +1,22 @@
 *** WooCommerce Points and Rewards Changelog ***
 
+2018-01-24 - version 1.6.11
+* Fix   - Points being accrued on 100% coupons when taxes are set to inclusive.
+* Tweak - Add Accommodations compatibility
+* Fix   - Display points for variable products as well.
+* Fix   - Extra cent rounding issues with coupons.
+
+2017-12-12 - version 1.6.10
+* Fix    - Points earned field for variations not accepting % percentage.
+* Fix    - Allow bookable products to have points earned at the product level.
+* Update - WC tested up to version.
+
+2017-11-08 - version 1.6.9
+* Fix - Compound tax products were not allowing the full subtotal to be covered by points
+
+2017-10-30 - version 1.6.8
+* Fix - Incorrect points being applied in multiple quantities for newer versions of WooCommerce
+
 2017-10-12 - version 1.6.7
 * Fix - Points not being redeemed when order is on-hold.
 

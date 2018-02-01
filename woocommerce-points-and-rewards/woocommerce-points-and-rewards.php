@@ -5,10 +5,10 @@
  * Description: Reward customers for purchases and other actions with points which can be redeemed for discounts
  * Author: WooCommerce
  * Author URI: https://woocommerce.com
- * Version: 1.6.7
+ * Version: 1.6.11
  * Text Domain: woocommerce-points-and-rewards
  * Domain Path: /languages/
- * WC tested up to: 3.2
+ * WC tested up to: 3.3
  * WC requires at least: 2.6
  *
  * Copyright: (c) 2013-2017 WooCommerce
@@ -133,7 +133,7 @@ $GLOBALS['wc_points_rewards'] = new WC_Points_Rewards();
 class WC_Points_Rewards {
 
 	/** plugin version number */
-	const VERSION = '1.6.7';
+	const VERSION = '1.6.11';
 
 	/** @var string the plugin path */
 	private $plugin_path;

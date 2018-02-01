@@ -175,18 +175,31 @@ class WC_Points_Rewards_Discount {
 		 * Get item discount by dividing item cost by subtotal to get a %
 		 */
 		$discount_percent = 0;
+		$cart_item_qty    = $cart_item['quantity'];
+		$cart_item_data   = $cart_item['data'];
 
-		if ( WC()->cart->subtotal_ex_tax ) {
+		if ( wc_prices_include_tax() ) {
+			$sub_total_inc_tax = WC()->cart->subtotal - $existing_discount_amounts;
+			
+			$discount_percent = (
+				wc_get_price_including_tax( $cart_item_data ) * $cart_item_qty - $this->get_cart_item_discount_total( $cart_item )
+			) / $sub_total_inc_tax;
+		} else {
 			$sub_total_ex_tax = WC()->cart->subtotal_ex_tax - $existing_discount_amounts;
 
 			$discount_percent = (
-				wc_get_price_excluding_tax( $cart_item['data'] ) * $cart_item['quantity'] - $this->get_cart_item_discount_total( $cart_item )
+				wc_get_price_excluding_tax( $cart_item_data ) * $cart_item_qty - $this->get_cart_item_discount_total( $cart_item )
 			) / $sub_total_ex_tax;
 		}
 
-		$total_discount = WC_Points_Rewards_Cart_Checkout::get_discount_for_redeeming_points( true, $existing_discount_amounts );
+		$total_discount                 = WC_Points_Rewards_Cart_Checkout::get_discount_for_redeeming_points( true, $existing_discount_amounts );
+		$total_with_discount_percent    = (float) $total_discount * $discount_percent;
 
-		$total_discount = min( ( (float) $total_discount * $discount_percent ) / $cart_item['quantity'], $discounting_amount );
+		if ( version_compare( WC_VERSION, '3.2.0', '<' ) ) {
+			$total_with_discount_percent = $total_with_discount_percent / $cart_item['quantity'];
+		}
+
+		$total_discount = round( min( $total_with_discount_percent, $discounting_amount ) );
 
 		return $total_discount;
 	}
