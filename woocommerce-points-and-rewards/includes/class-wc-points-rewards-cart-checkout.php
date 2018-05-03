@@ -312,7 +312,7 @@ class WC_Points_Rewards_Cart_Checkout {
 			wc_enqueue_js( '
 				$( "body" ).on( "click", "input.wc_points_rewards_apply_discount", function( e ) {
 					var points = prompt( "' . esc_js( __( 'How many points would you like to apply?', 'woocommerce-points-and-rewards' ) ) . '", "' . $points . '" );
-					if ( points != null ) {
+					if ( null != points && 0 != points ) {
 						$( "input.wc_points_rewards_apply_discount_amount" ).val( points );
 					}
 					return true;
@@ -325,6 +325,7 @@ class WC_Points_Rewards_Cart_Checkout {
 		if ( is_checkout() ) {
 			wc_enqueue_js( '
 			/* Points & Rewards AJAX Apply Points Discount */
+			var points_applied = false;
 
 			$(function() {
 
@@ -374,7 +375,14 @@ class WC_Points_Rewards_Cart_Checkout {
 				 * @param {function} Callback to be called after message is shown to the user.
 				 */
 				var show_rewards_message = function show_rewards_message( callback ) {
-					$( ".wc_points_rewards_earn_points" ).slideDown( function() {
+					var el = $( ".wc_points_rewards_earn_points" );
+
+					if ( 0 == el.length ) {
+						callback && callback();
+						return;
+					}
+
+					el.slideDown( function() {
 						callback && callback();
 					});
 				}
@@ -386,7 +394,14 @@ class WC_Points_Rewards_Cart_Checkout {
 				 * @param {function} Callback to be called after message is shown to the user.
 				 */
 				var hide_rewards_message = function hide_rewards_message( callback ) {
-					$( ".wc_points_rewards_earn_points" ).slideUp( function() {
+					var el = $( ".wc_points_rewards_earn_points" );
+
+					if ( 0 == el.length ) {
+						callback && callback();
+						return;
+					}
+
+					el.slideUp( function() {
 						callback && callback();
 					});
 				}
@@ -397,6 +412,9 @@ class WC_Points_Rewards_Cart_Checkout {
 				 * @since 1.6.10
 				 */
 				var show_redeem_message = function show_redeem_message() {
+					if ( points_applied ) {
+						return;
+					}
 					$( ".wc_points_redeem_earn_points" ).slideDown();
 				}
 
@@ -448,6 +466,7 @@ class WC_Points_Rewards_Cart_Checkout {
 							url:      woocommerce_params.ajax_url,
 							data:     data,
 							success:  function( code ) {
+								points_applied = true;
 
 								$( ".woocommerce-error, .woocommerce-message" ).remove();
 								$section.removeClass( "processing" ).unblock();

@@ -152,13 +152,13 @@ class WC_Points_Rewards_Discount {
 	 * Get coupon discount amount
 	 *
 	 * @since 1.6.0
-	 * @version 1.6.5
-	 * @param  float $discount
-	 * @param  float $discounting_amount
-	 * @param  object $cart_item
-	 * @param  bool $single
+	 * @version 1.6.12
+	 * @param  float $discount Amount this coupon has been discounted
+	 * @param  float $discounting_amount Amount the coupon is being applied to
+	 * @param  array $cart_item Cart item being discounted if applicable
+	 * @param  boolean $single True if discounting a single qty item, false if its the line
 	 * @param  WC_Coupon $coupon
-	 * @return float
+	 * @return float Amount this coupon will be discounted
 	 */
 	public function get_discount_amount( $discount, $discounting_amount, $cart_item, $single, $coupon ) {
 		if ( strtolower( $coupon->get_code() ) != $this->get_discount_code() ) {
@@ -199,9 +199,11 @@ class WC_Points_Rewards_Discount {
 			$total_with_discount_percent = $total_with_discount_percent / $cart_item['quantity'];
 		}
 
-		$total_discount = round( min( $total_with_discount_percent, $discounting_amount ) );
-
-		return $total_discount;
+		if ( version_compare( WC_VERSION, '2.6.3', '>' ) ) {
+			return round( min( $total_with_discount_percent, $discounting_amount ), wc_get_rounding_precision() );
+		} else {
+			return round( min( $total_with_discount_percent, $discounting_amount ), 6 );
+		}
 	}
 
 	/**

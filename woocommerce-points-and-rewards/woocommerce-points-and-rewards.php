@@ -5,7 +5,7 @@
  * Description: Reward customers for purchases and other actions with points which can be redeemed for discounts
  * Author: WooCommerce
  * Author URI: https://woocommerce.com
- * Version: 1.6.11
+ * Version: 1.6.12
  * Text Domain: woocommerce-points-and-rewards
  * Domain Path: /languages/
  * WC tested up to: 3.3
@@ -133,7 +133,7 @@ $GLOBALS['wc_points_rewards'] = new WC_Points_Rewards();
 class WC_Points_Rewards {
 
 	/** plugin version number */
-	const VERSION = '1.6.11';
+	const VERSION = '1.6.12';
 
 	/** @var string the plugin path */
 	private $plugin_path;
@@ -272,7 +272,7 @@ class WC_Points_Rewards {
 		unset( $menu_items['customer-logout'] );
 
 		// Insert Points & Rewards.
-		$menu_items[ $this->endpoint ] = __( 'Points', 'woocommerce-points-and-rewards' );
+		$menu_items[ $this->endpoint ] = $this->get_points_label( 1 );
 
 		// Insert back logout item.
 		$menu_items['customer-logout'] = $logout;

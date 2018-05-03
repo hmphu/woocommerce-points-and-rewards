@@ -369,11 +369,9 @@ class WC_Points_Rewards_Product {
 			$points = get_post_meta( $product->get_id(), '_wc_points_max_discount', true );
 			if ( ! method_exists( $product, 'get_variation_price' ) ) {
 				// subscriptions integration - if subscriptions is active check if this is a renewal order
-				if ( class_exists( 'WC_Subscriptions_Renewal_Order' ) && is_object( $order ) ) {
-					if ( wcs_order_contains_resubscribe( $order ) ) {
-						$renewal_points = get_post_meta( $variation_id, '_wc_points_rewnewal_points', true );
-						$points = ( $renewal_points ) ? $renewal_points : $points;
-					}
+				if ( self::is_order_renewal( $order ) ) {
+					$renewal_points = get_post_meta( $variation_id, '_wc_points_renewal_points', true );
+					$points = ( $renewal_points ) ? $renewal_points : $points;
 				}
 			}
 		} else {
@@ -381,11 +379,9 @@ class WC_Points_Rewards_Product {
 			$points = get_post_meta( $variation_id, '_wc_points_earned', true );
 
 			// subscriptions integration - if subscriptions is active check if this is a renewal order
-			if ( class_exists( 'WC_Subscriptions_Renewal_Order' ) && is_object( $order ) ) {
-				if ( wcs_order_contains_resubscribe( $order ) ) {
-					$renewal_points = get_post_meta( $variation_id, '_wc_points_rewnewal_points', true );
-					$points = ( '' === $renewal_points ) ? $points : $renewal_points;
-				}
+			if ( self::is_order_renewal( $order ) ) {
+				$renewal_points = get_post_meta( $variation_id, '_wc_points_renewal_points', true );
+				$points = ( $renewal_points ) ? $renewal_points : $points;
 			}
 
 			// if points aren't set at variation level, use them if they're set at the product level
@@ -393,11 +389,9 @@ class WC_Points_Rewards_Product {
 				$points = get_post_meta( $product->get_id(), '_wc_points_earned', true );
 
 				// subscriptions integration - if subscriptions is active check if this is a renewal order
-				if ( class_exists( 'WC_Subscriptions_Renewal_Order' ) && is_object( $order ) ) {
-					if ( wcs_order_contains_resubscribe( $order ) ) {
-						$renewal_points = get_post_meta( $product->get_id(), '_wc_points_rewnewal_points', true );
-						$points = ( $renewal_points ) ? $renewal_points : $points;
-					}
+				if ( self::is_order_renewal( $order ) ) {
+					$renewal_points = get_post_meta( $product->get_id(), '_wc_points_renewal_points', true );
+					$points = ( $renewal_points ) ? $renewal_points : $points;
 				}
 			}
 		} // End if().
@@ -456,11 +450,9 @@ class WC_Points_Rewards_Product {
 		foreach ( $category_points_array as $category_id => $points ) {
 
 			// subscriptions integration - if subscriptions is active check if this is a renewal order
-			if ( class_exists( 'WC_Subscriptions_Renewal_Order' ) && is_object( $order ) ) {
-				if ( wcs_order_contains_resubscribe( $order ) ) {
-					$renewal_points = get_woocommerce_term_meta( $category_id, '_wc_points_rewnewal_points', true );
-					$points = ( '' === $renewal_points ) ? $points : $renewal_points;
-				}
+			if ( self::is_order_renewal( $order ) ) {
+				$renewal_points = get_woocommerce_term_meta( $category_id, '_wc_points_renewal_points', true );
+				$points = ( $renewal_points ) ? $renewal_points : $points;
 			}
 
 			// if a percentage modifier is set, adjust the default points earned for the category by the percentage
@@ -584,7 +576,13 @@ class WC_Points_Rewards_Product {
 	private static function get_category_max_discount( $product ) {
 		global $wpdb;
 
-		$category_ids = wc_get_product_terms( $product->get_id(), 'product_cat', array( 'fields' => 'ids' ) );
+		if ( $product->is_type( 'variation' ) ) {
+			$product_id = version_compare( WC_VERSION, '3.0.0', '<' ) ? $product->parent_id : $product->get_parent_id();
+		} else {
+			$product_id = $product->get_id();
+		}
+
+		$category_ids = wc_get_product_terms( $product_id, 'product_cat', array( 'fields' => 'ids' ) );
 
 		if ( ! $category_ids ) {
 			return '';
@@ -669,5 +667,23 @@ class WC_Points_Rewards_Product {
 		delete_transient( $this->transient_lowest_point_variation( $product_id ) );
 	}
 
+	/**
+	 * Check if order is renewal in case Subscriptions is enabled.
+	 *
+	 * @param WC_Order $order
+	 *
+	 * @return bool
+	 */
+	protected static function is_order_renewal( $order ) {
+		if ( ! function_exists( 'wcs_order_contains_resubscribe' ) || ! function_exists( 'wcs_order_contains_renewal' ) ) {
+			return false;
+		}
+
+		if ( ! wcs_order_contains_resubscribe( $order ) && ! wcs_order_contains_renewal( $order ) ) {
+			return false;
+		}
+
+		return true;
+	}
 
 } // end \WC_Points_Rewards_Product class

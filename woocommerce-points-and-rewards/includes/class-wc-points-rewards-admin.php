@@ -711,6 +711,8 @@ class WC_Points_Rewards_Admin {
 
 			list( $points, $monetary_value ) = explode( ':', $ratio );
 
+			$monetary_value = str_replace( '.', wc_get_price_decimal_separator(), $monetary_value );
+
 			?>
 				<tr valign="top">
 					<th scope="row" class="titledesc">
@@ -721,7 +723,7 @@ class WC_Points_Rewards_Admin {
 						<fieldset>
 							<input name="<?php echo esc_attr( $field['id'] . '_points' ); ?>" id="<?php echo esc_attr( $field['id'] . '_points' ); ?>" type="text" style="max-width: 50px;" value="<?php echo esc_attr( $points ); ?>" />&nbsp;<?php _e( 'Points', 'woocommerce-points-and-rewards' ); ?>
 							<span>&nbsp;&#61;&nbsp;</span>&nbsp;<?php echo get_woocommerce_currency_symbol(); ?>
-							<input name="<?php echo esc_attr( $field['id'] . '_monetary_value' ); ?>" id="<?php echo esc_attr( $field['id'] . '_monetary_value' ); ?>" type="text" style="max-width: 50px;" value="<?php echo esc_attr( $monetary_value ); ?>" />
+							<input class="wc_input_price" name="<?php echo esc_attr( $field['id'] . '_monetary_value' ); ?>" id="<?php echo esc_attr( $field['id'] . '_monetary_value' ); ?>" type="text" style="max-width: 50px;" value="<?php echo esc_attr( $monetary_value ); ?>" />
 						</fieldset>
 					</td>
 				</tr>
@@ -805,7 +807,11 @@ class WC_Points_Rewards_Admin {
 	public function save_conversion_ratio_field( $value, $option, $raw_value ) {
 
 		if ( isset( $_POST[ $option['id'] . '_points' ] ) && ! empty( $_POST[ $option['id'] . '_monetary_value' ] ) )
-			return wc_clean( $_POST[ $option['id'] . '_points' ] ) . ':' . wc_clean( $_POST[ $option['id'] . '_monetary_value' ] );
+			$points         = wc_clean( $_POST[ $option['id'] . '_points' ] );
+			$monetary_value = wc_clean( $_POST[ $option['id'] . '_monetary_value' ] );
+			$monetary_value = str_replace( wc_get_price_decimal_separator(), '.', $monetary_value );
+
+			return $points . ':' . $monetary_value;
 	}
 
 	/**

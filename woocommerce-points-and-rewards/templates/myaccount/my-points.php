@@ -45,4 +45,15 @@ if ( ! defined( 'ABSPATH' ) ) {
 		<?php endforeach; ?>
 		</tbody>
 	</table>
+
+	<div class="woocommerce-pagination woocommerce-pagination--without-numbers woocommerce-Pagination">
+	<?php if ( $current_page != 1 ) : ?>
+		<a class="woocommerce-button woocommerce-button--previous woocommerce-Button woocommerce-Button--previous button" href="<?php echo esc_url( wc_get_endpoint_url( 'points-and-rewards', $current_page - 1 ) ); ?>"><?php _e( 'Previous', 'woocommerce-points-and-rewards' ); ?></a>
+	<?php endif; ?>
+
+	<?php if ( $current_page * $count < $total_rows ) : ?>
+		<a class="woocommerce-button woocommerce-button--next woocommerce-Button woocommerce-Button--next button" href="<?php echo esc_url( wc_get_endpoint_url( 'points-and-rewards', $current_page + 1 ) ); ?>"><?php _e( 'Next', 'woocommerce-points-and-rewards' ); ?></a>
+	<?php endif; ?>
+	</div>
+
 <?php endif;

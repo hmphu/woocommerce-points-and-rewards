@@ -76,6 +76,7 @@ class WC_Points_Rewards_Manager {
 			case 'admin-adjustment': $event_description = sprintf( __( '%s adjusted by "admin"',          'woocommerce-points-and-rewards' ), $points_label ); break;
 			case 'order-placed':     $event_description = sprintf( __( '%s earned for purchase',          'woocommerce-points-and-rewards' ), $points_label ); break;
 			case 'order-cancelled':  $event_description = sprintf( __( '%s adjusted for cancelled order', 'woocommerce-points-and-rewards' ), $points_label ); break;
+			case 'order-refunded':   $event_description = sprintf( __( '%s adjusted for an order refund', 'woocommerce-points-and-rewards' ), $points_label ); break;
 			case 'order-redeem':     $event_description = sprintf( __( '%s redeemed towards purchase',    'woocommerce-points-and-rewards' ), $points_label ); break;
 			case 'expire':           $event_description = sprintf( __( '%s expired',                      'woocommerce-points-and-rewards' ), $points_label ); break;
 		}

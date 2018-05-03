@@ -1,5 +1,17 @@
 *** WooCommerce Points and Rewards Changelog ***
 
+2018-04-24 - version 1.6.12
+* Fix   - Apply Discount notice returns after submission.
+* Fix   - Bulk Edit Change To points does not work.
+* Fix   - Customer hits cancel after applying partial points redemption but points still applied.
+* Fix   - Label on front-end should match settings label.
+* Fix   - Output P&R HTML element on the checkout regardless of whether points are rewarded or not.
+* Fix   - Renewal points are not properly assigned to renewal orders for Subscriptions.
+* Fix   - Use max category discount rules for variable products.
+* Tweak - Add pagination on the front-end to display all points' calculations.
+* Tweak - Respect decimal separator settings in WooCommerce.
+* Tweak - Support partial refund on orders to partially refund points accordingly.
+
 2018-01-24 - version 1.6.11
 * Fix   - Points being accrued on 100% coupons when taxes are set to inclusive.
 * Tweak - Add Accommodations compatibility

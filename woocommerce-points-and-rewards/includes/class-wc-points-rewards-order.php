@@ -37,6 +37,7 @@ class WC_Points_Rewards_Order {
 		add_action( 'woocommerce_order_status_cancelled', array( $this, 'handle_cancelled_refunded_order' ) );
 		add_action( 'woocommerce_order_status_refunded', array( $this, 'handle_cancelled_refunded_order' ) );
 		add_action( 'woocommerce_order_status_failed', array( $this, 'handle_cancelled_refunded_order' ) );
+		add_action( 'woocommerce_order_partially_refunded', array( $this, 'handle_partially_refunded_order' ), 10, 2 );
 	}
 
 	/**
@@ -142,9 +143,14 @@ class WC_Points_Rewards_Order {
 			$points_earned += apply_filters( 'woocommerce_points_earned_for_order_item', WC_Points_Rewards_Product::get_points_earned_for_product_purchase( $product, $order ), $product, $item_key, $item, $order ) * $item['qty'];
 		}
 
-		// reduce by any discounts.  One minor drawback: if the discount includes a discount on tax and/or shipping
-		//  it will cost the customer points, but this is a better solution than granting full points for discounted orders
-		$discount = $order->get_total_discount();
+		// Reduce by any discounts.  One minor drawback: if the discount includes a discount on tax and/or shipping
+		// it will cost the customer points, but this is a better solution than granting full points for discounted orders
+		if ( version_compare( WC_VERSION, '2.3', '<' ) ) {
+			$discount = $order->get_total_discount( false );
+		} else {
+			$discount = $order->get_total_discount( ! wc_prices_include_tax() );
+		}
+
 		$points_earned -= min( WC_Points_Rewards_Manager::calculate_points( $discount ), $points_earned );
 
 		// check if applied coupons have a points modifier and use it to adjust the points earned
@@ -276,7 +282,6 @@ class WC_Points_Rewards_Order {
 		$order->add_order_note( sprintf( __( '%1$d %2$s redeemed for a %3$s discount.', 'woocommerce-points-and-rewards' ), $points_redeemed, $wc_points_rewards->get_points_label( $points_redeemed ), wc_price( $discount_amount ) ) );
 	}
 
-
 	/**
 	 * Handle an order that is cancelled or refunded by:
 	 *
@@ -289,7 +294,6 @@ class WC_Points_Rewards_Order {
 	 * @param int $order_id the WC_Order ID
 	 */
 	public function handle_cancelled_refunded_order( $order_id ) {
-
 		global $wc_points_rewards;
 
 		$order = wc_get_order( $order_id );
@@ -332,6 +336,47 @@ class WC_Points_Rewards_Order {
 			// add order note
 			/* translators: 1: points redeemed 2: points redeemed label */
 			$order->add_order_note( sprintf( __( '%1$d %2$s credited back to customer.', 'woocommerce-points-and-rewards' ), $points_redeemed, $wc_points_rewards->get_points_label( $points_redeemed ) ) );
+		}
+	}
+
+	/**
+	 * Handle an order that is cancelled or refunded by:
+	 *
+	 * 1) Removing any points earned for the order
+	 *
+	 * 2) Crediting points redeemed for a discount back to the customer's account if the order that they redeemed the points
+	 * for a discount on is cancelled or refunded
+	 *
+	 * @since 1.0
+	 * @param int $order_id  WC_Order ID
+	 * @param int $refund_id WC_Order_Refund ID
+	 */
+	public function handle_partially_refunded_order( $order_id, $refund_id ) {
+		global $wc_points_rewards;
+
+		$order         = wc_get_order( $order_id );
+		$order_user_id = version_compare( WC_VERSION, '3.0', '<' ) ? $order->user_id : $order->get_user_id();
+
+		// bail for guest user
+		if ( ! $order_user_id ) {
+			return;
+		}
+
+		// handle removing any points earned for the order
+		$points_earned = get_post_meta( $order_id, '_wc_points_earned', true );
+
+		if ( $points_earned > 0 ) {
+			$refund        = new WC_Order_Refund( $refund_id );
+
+			$percentage    = $refund->get_amount() / $order->get_total();
+			$points_earned = absint( $points_earned * $percentage );
+
+			// remove points
+			WC_Points_Rewards_Manager::decrease_points( $order_user_id, $points_earned, 'order-refunded', null, $order_id );
+
+			// add order note
+			/* translators: 1: points earned 2: points earned label */
+			$order->add_order_note( sprintf( __( '%1$d %2$s removed.', 'woocommerce-points-and-rewards' ), $points_earned, $wc_points_rewards->get_points_label( $points_earned ) ) );
 		}
 	}
 
