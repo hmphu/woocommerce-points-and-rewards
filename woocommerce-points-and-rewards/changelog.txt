@@ -1,5 +1,10 @@
 *** WooCommerce Points and Rewards Changelog ***
 
+2018-05-23 - version 1.6.13
+* Update - WC tested up to 3.4
+* Update - Privacy policy notification.
+* Fix    - Update pot file strings.
+
 2018-04-24 - version 1.6.12
 * Fix   - Apply Discount notice returns after submission.
 * Fix   - Bulk Edit Change To points does not work.
